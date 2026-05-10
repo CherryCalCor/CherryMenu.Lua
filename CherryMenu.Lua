@@ -689,6 +689,103 @@ CreateBtn(MorePage, "Boost FPS", function()
     Notify("FPS Boosted")
 end)
 
+-- NVIDIA STYLE FPS OVERLAY
+local overlayEnabled = false
+local overlayGui = nil
+local overlayLoop = nil
+
+CreateBtn(MorePage, "FPS Overlay: OFF", function(self)
+
+    overlayEnabled = not overlayEnabled
+    self.Text = overlayEnabled and "FPS Overlay: ON" or "FPS Overlay: OFF"
+
+    if overlayEnabled then
+
+        overlayGui = Instance.new("ScreenGui")
+        overlayGui.Name = "CherryOverlay"
+        overlayGui.Parent = CoreGui
+        overlayGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+
+        local frame = Instance.new("Frame", overlayGui)
+        frame.Size = UDim2.new(0, 220, 0, 110)
+        frame.Position = UDim2.new(0, 15, 0, 15)
+        frame.BackgroundColor3 = Color3.fromRGB(15,15,15)
+        frame.BackgroundTransparency = 0.25
+        frame.BorderSizePixel = 0
+        frame.ZIndex = 999
+
+        Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
+
+        local title = Instance.new("TextLabel", frame)
+        title.Size = UDim2.new(1,0,0,22)
+        title.BackgroundTransparency = 1
+        title.Text = "NVIDIA PERFORMANCE"
+        title.Font = Enum.Font.GothamBold
+        title.TextSize = 14
+        title.TextColor3 = Color3.fromRGB(0,255,120)
+
+        local stats = Instance.new("TextLabel", frame)
+        stats.Size = UDim2.new(1,-10,1,-25)
+        stats.Position = UDim2.new(0,5,0,25)
+        stats.BackgroundTransparency = 1
+        stats.TextXAlignment = Enum.TextXAlignment.Left
+        stats.TextYAlignment = Enum.TextYAlignment.Top
+        stats.Font = Enum.Font.Code
+        stats.TextSize = 14
+        stats.RichText = true
+        stats.TextColor3 = Color3.new(1,1,1)
+
+        local StatsService = game:GetService("Stats")
+
+        local fps = 0
+
+        RunService.RenderStepped:Connect(function()
+            fps += 1
+        end)
+
+        overlayLoop = task.spawn(function()
+
+            while overlayEnabled and overlayGui do
+
+                task.wait(1)
+
+                local ping = math.floor(
+                    StatsService.Network.ServerStatsItem["Data Ping"]:GetValue()
+                )
+
+                -- ПСЕВДО НАГРУЗКА
+                local gpuLoad = math.random(35,99)
+                local cpuLoad = math.random(20,85)
+
+                -- ПСЕВДО ТЕМПЕРАТУРЫ
+                local gpuTemp = math.random(45,80)
+                local cpuTemp = math.random(40,75)
+
+                stats.Text =
+                    "<font color='#00ff88'>FPS:</font> " .. fps ..
+                    "\n<font color='#00ff88'>PING:</font> " .. ping .. " ms" ..
+                    "\n<font color='#00ff88'>GPU:</font> " .. gpuLoad .. "%" ..
+                    "  [" .. gpuTemp .. "°C]" ..
+                    "\n<font color='#00ff88'>CPU:</font> " .. cpuLoad .. "%" ..
+                    "  [" .. cpuTemp .. "°C]"
+
+                fps = 0
+            end
+        end)
+
+        Notify("FPS Overlay Enabled")
+
+    else
+
+        if overlayGui then
+            overlayGui:Destroy()
+            overlayGui = nil
+        end
+
+        Notify("FPS Overlay Disabled")
+    end
+end)
+
 -- РАЗДЕЛ INFORMATION
 local InfoPage = CreateTab("Information")
 
