@@ -759,6 +759,178 @@ task.spawn(function()
     end
 end)
 
+-- FUNNY TAB
+local FunnyPage = CreateTab("Funny")
+
+local stalking = false
+local stalkTarget = nil
+local stalkConnection = nil
+
+-- ОКНО СПИСКА ИГРОКОВ
+local StalkFrame = Instance.new("Frame", ScreenGui)
+StalkFrame.Size = UDim2.new(0, 220, 0, 260)
+StalkFrame.Position = UDim2.new(0.5, -110, 0.5, -130)
+StalkFrame.BackgroundColor3 = Color3.fromRGB(20,20,20)
+StalkFrame.Visible = false
+StalkFrame.ZIndex = 60
+Instance.new("UICorner", StalkFrame)
+
+MakeDraggable(StalkFrame, StalkFrame)
+
+local StalkClose = Instance.new("TextButton", StalkFrame)
+StalkClose.Size = UDim2.new(0, 22, 0, 22)
+StalkClose.Position = UDim2.new(1, -27, 0, 5)
+StalkClose.BackgroundColor3 = Color3.fromRGB(200,0,0)
+StalkClose.Text = "X"
+StalkClose.TextColor3 = Color3.new(1,1,1)
+StalkClose.ZIndex = 61
+Instance.new("UICorner", StalkClose)
+
+StalkClose.MouseButton1Click:Connect(function()
+    StalkFrame.Visible = false
+end)
+
+local StalkScroll = Instance.new("ScrollingFrame", StalkFrame)
+StalkScroll.Size = UDim2.new(1, -10, 1, -40)
+StalkScroll.Position = UDim2.new(0, 5, 0, 35)
+StalkScroll.BackgroundTransparency = 1
+StalkScroll.ScrollBarThickness = 0
+StalkScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+StalkScroll.ZIndex = 61
+
+Instance.new("UIListLayout", StalkScroll).Padding = UDim.new(0,5)
+
+-- КНОПКА ОТКРЫТИЯ STALK MENU
+CreateBtn(FunnyPage, "Stalk Mode", function()
+
+    StalkFrame.Visible = not StalkFrame.Visible
+
+    if StalkFrame.Visible then
+
+        for _, v in pairs(StalkScroll:GetChildren()) do
+            if v:IsA("Frame") then
+                v:Destroy()
+            end
+        end
+
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= Player then
+
+                local pf = Instance.new("Frame", StalkScroll)
+                pf.Size = UDim2.new(1,0,0,35)
+                pf.BackgroundTransparency = 1
+
+                local name = Instance.new("TextLabel", pf)
+                name.Size = UDim2.new(0.55,0,1,0)
+                name.BackgroundTransparency = 1
+                name.Text = p.DisplayName
+                name.TextColor3 = Color3.new(1,1,1)
+                name.Font = Enum.Font.GothamBold
+                name.TextXAlignment = Enum.TextXAlignment.Left
+
+                local stalkBtn = Instance.new("TextButton", pf)
+                stalkBtn.Size = UDim2.new(0.4,0,0.8,0)
+                stalkBtn.Position = UDim2.new(0.58,0,0.1,0)
+                stalkBtn.BackgroundColor3 = Color3.fromRGB(150,0,0)
+                stalkBtn.Text = "STALK"
+                stalkBtn.TextColor3 = Color3.new(1,1,1)
+                stalkBtn.Font = Enum.Font.GothamBold
+                Instance.new("UICorner", stalkBtn)
+
+                stalkBtn.MouseButton1Click:Connect(function()
+
+                    if not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") then
+                        Notify("Player unavailable")
+                        return
+                    end
+
+                    local myChar = Player.Character
+                    if not myChar or not myChar:FindFirstChild("HumanoidRootPart") then
+                        return
+                    end
+
+                    stalking = true
+                    stalkTarget = p
+
+                    -- TP К ИГРОКУ
+                    myChar.HumanoidRootPart.CFrame =
+                        p.Character.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+
+                    -- УДАЛЯЕМ СТАРОЕ СОЕДИНЕНИЕ
+                    if stalkConnection then
+                        stalkConnection:Disconnect()
+                    end
+
+                    -- ПОСТОЯННОЕ СЛЕДОВАНИЕ
+                    stalkConnection = RunService.RenderStepped:Connect(function()
+
+                        if stalking and stalkTarget then
+
+                            local targetChar = stalkTarget.Character
+                            local myCharacter = Player.Character
+
+                            if targetChar
+                            and myCharacter
+                            and targetChar:FindFirstChild("HumanoidRootPart")
+                            and myCharacter:FindFirstChild("HumanoidRootPart") then
+
+                                myCharacter.HumanoidRootPart.CFrame =
+                                    targetChar.HumanoidRootPart.CFrame * CFrame.new(0,0,3)
+
+                                -- АВТО НАБЛЮДЕНИЕ
+                                if targetChar:FindFirstChild("Humanoid") then
+                                    Camera.CameraSubject = targetChar.Humanoid
+                                end
+                            end
+                        end
+                    end)
+
+                    Notify("Stalking: " .. p.Name)
+                end)
+            end
+        end
+    end
+end)
+
+-- ОСТАНОВКА STALK MODE
+CreateBtn(FunnyPage, "Stop Stalk", function()
+
+    stalking = false
+    stalkTarget = nil
+
+    if stalkConnection then
+        stalkConnection:Disconnect()
+        stalkConnection = nil
+    end
+
+    if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+        Camera.CameraSubject = Player.Character.Humanoid
+    end
+
+    Notify("Stalk OFF")
+end)
+
+-- ЕСЛИ ИГРОК ВЫШЕЛ
+Players.PlayerRemoving:Connect(function(p)
+
+    if stalkTarget == p then
+
+        stalking = false
+        stalkTarget = nil
+
+        if stalkConnection then
+            stalkConnection:Disconnect()
+            stalkConnection = nil
+        end
+
+        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+            Camera.CameraSubject = Player.Character.Humanoid
+        end
+
+        Notify("Target left game")
+    end
+end)
+
 -- ЗАПУСК
 task.wait(3.5)
 TweenService:Create(Loading, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
